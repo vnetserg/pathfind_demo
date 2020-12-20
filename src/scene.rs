@@ -57,7 +57,7 @@ impl PathtfindScene {
             active_cell: None,
             pointer_mode: PointerMode::Noop,
             draw_commands: vec![],
-            animation_progress: 1.,
+            animation_progress: 0.,
         }
     }
 
@@ -77,11 +77,11 @@ impl PathtfindScene {
         cx.draw_circle(center_x, center_y, 45., color);
     }
 
-    fn draw_shapes(&self, cx: &mut DrawContext) {
+    fn draw_animation(&self, cx: &mut DrawContext) {
         let end = self
             .draw_commands
             .len()
-            .min((self.animation_progress * self.draw_commands.len() as f32) as usize);
+            .min(self.animation_progress as usize);
         let start = self.draw_commands[..end].iter()
             .enumerate()
             .rfind(|(_, cmd)| matches!(cmd, DrawCommand::Clear))
@@ -157,8 +157,8 @@ impl Scene for PathtfindScene {
     }
 
     fn update(&mut self, delta: f32) {
-        if self.animation_progress < 1. {
-            self.animation_progress += delta / 5.;
+        if self.animation_progress < self.draw_commands.len() as f32 {
+            self.animation_progress += 50. * delta;
         }
     }
 
@@ -173,7 +173,7 @@ impl Scene for PathtfindScene {
             self.fill_cell(x, y, color, cx);
         }
         self.draw_bars(colors::WHITE, cx);
-        self.draw_shapes(cx);
+        self.draw_animation(cx);
         self.mark_cell(self.start.0, self.start.1, colors::DARKGREEN, cx);
         self.mark_cell(self.finish.0, self.finish.1, colors::DARKBLUE, cx);
     }

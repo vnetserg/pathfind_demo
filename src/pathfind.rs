@@ -28,7 +28,7 @@ pub fn find_and_render_path<T: PathfindAlgorithm>(
         draw_commands.push(
             DrawCommand::AddShape(Shape::SegmentedLine {
                 points: path,
-                width: 7.,
+                width: 5.,
                 color: colors::LIME,
             }),
         );
