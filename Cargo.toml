@@ -1,0 +1,11 @@
+[package]
+name = "pathfind_demo"
+version = "0.1.0"
+authors = ["Sergei Fomin <sergio-dna@yandex.ru>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+macroquad = "0.3.0-alpha.0"
+quad-gl = "0.2"
