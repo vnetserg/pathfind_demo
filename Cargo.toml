@@ -7,6 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false, features = ["compile-parse"] }
+rustpython-vm = { git = "https://github.com/RustPython/RustPython", default-features = false, features = ["compile-parse", "freeze-stdlib"] }
 macroquad = { path = "contrib/macroquad" }
 quad-gl = { path = "contrib/macroquad/quad-gl" }

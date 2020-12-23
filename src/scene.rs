@@ -6,11 +6,13 @@ use crate::runner::{DrawContext, Event, MouseButton, Scene, SceneConfig};
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub enum DrawCommand {
     AddShape(Shape),
     Clear,
 }
 
+#[derive(Debug)]
 pub enum Shape {
     Square {
         x: usize,
