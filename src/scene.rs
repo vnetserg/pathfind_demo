@@ -2,7 +2,7 @@ pub use crate::runner::{colors, Color};
 
 use crate::grid::Grid;
 use crate::runner::{DrawContext, Event, MouseButton, Scene, SceneConfig};
-use crate::pathfind::{find_and_render_path, Dfs};
+use crate::pathfind::{find_and_render_path, PythonPathfind};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -209,7 +209,7 @@ impl Scene for PathtfindScene {
                 ..
             } => {
                 self.draw_commands = find_and_render_path(
-                    &Dfs {},
+                    &PythonPathfind::default(),
                     &self.grid,
                     self.start,
                     self.finish,

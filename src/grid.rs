@@ -1,3 +1,5 @@
+use rustpython_vm::{VirtualMachine, pyobject::{IntoPyObject, PyObjectRef}};
+
 #[derive(Clone)]
 pub struct Grid<T> {
     width: usize,
@@ -73,5 +75,19 @@ impl<T: Default + Copy> Grid<T> {
             self.try_get(nx, ny)
                 .map(|value| (nx as usize, ny as usize, value))
         })
+    }
+}
+
+impl<T: IntoPyObject + Default + Copy> IntoPyObject for Grid<T> {
+    fn into_pyobject(self, vm: &VirtualMachine) -> PyObjectRef {
+        vm.ctx.new_list(
+            (0..self.width).map(|x| {
+                vm.ctx.new_list(
+                    (0..self.height)
+                        .map(|y| self.get(x, y).into_pyobject(vm))
+                        .collect()
+                )
+            }).collect()
+        )
     }
 }
