@@ -1,8 +1,8 @@
 pub use crate::runner::{colors, Color};
 
 use crate::grid::Grid;
-use crate::runner::{DrawContext, Event, MouseButton, Scene, SceneConfig};
 use crate::pathfind::{find_and_render_path, PythonPathfind};
+use crate::runner::{DrawContext, Event, MouseButton, Scene, SceneConfig};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -63,13 +63,7 @@ impl PathtfindScene {
 
     fn fill_cell(&self, x: usize, y: usize, color: Color, cx: &mut DrawContext) {
         let (center_x, center_y) = self.get_cell_center(x, y);
-        cx.draw_rectangle(
-            center_x - 50.,
-            center_y - 50.,
-            100.,
-            100.,
-            color,
-        );
+        cx.draw_rectangle(center_x - 50., center_y - 50., 100., 100., color);
     }
 
     fn mark_cell(&self, x: usize, y: usize, color: Color, cx: &mut DrawContext) {
@@ -82,7 +76,8 @@ impl PathtfindScene {
             .draw_commands
             .len()
             .min(self.animation_progress as usize);
-        let start = self.draw_commands[..end].iter()
+        let start = self.draw_commands[..end]
+            .iter()
             .enumerate()
             .rfind(|(_, cmd)| matches!(cmd, DrawCommand::Clear))
             .map(|(i, _)| i + 1)
@@ -92,12 +87,21 @@ impl PathtfindScene {
                 &DrawCommand::AddShape(Shape::Square { x, y, color }) => {
                     self.fill_cell(x, y, color, cx);
                 }
-                &DrawCommand::AddShape(Shape::Line { from, to, width, color }) => {
+                &DrawCommand::AddShape(Shape::Line {
+                    from,
+                    to,
+                    width,
+                    color,
+                }) => {
                     let (x1, y1) = self.get_cell_center(from.0, from.1);
                     let (x2, y2) = self.get_cell_center(to.0, to.1);
                     cx.draw_line(x1, y1, x2, y2, width, color);
                 }
-                &DrawCommand::AddShape(Shape::SegmentedLine { ref points, width, color }) => {
+                &DrawCommand::AddShape(Shape::SegmentedLine {
+                    ref points,
+                    width,
+                    color,
+                }) => {
                     for (from, to) in points.iter().zip(points.iter().skip(1)) {
                         let (x1, y1) = self.get_cell_center(from.0, from.1);
                         let (x2, y2) = self.get_cell_center(to.0, to.1);
@@ -127,10 +131,7 @@ impl PathtfindScene {
     }
 
     fn get_cell_center(&self, cell_x: usize, cell_y: usize) -> (f32, f32) {
-        (
-            52.5 + cell_x as f32 * 100.,
-            52.5 + cell_y as f32 * 100.,
-        )
+        (52.5 + cell_x as f32 * 100., 52.5 + cell_y as f32 * 100.)
     }
 
     fn apply_pointer_action(&mut self, x: usize, y: usize) {

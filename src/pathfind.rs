@@ -1,9 +1,10 @@
 use crate::grid::Grid;
-use crate::scene::{colors, Shape, DrawCommand};
+use crate::pywrappers::{PyTuple2Wrapper, PyVecWrapper};
+use crate::scene::{colors, DrawCommand, Shape};
 
-use rustpython_vm as py;
-use py::pyobject::{TryFromObject, IntoPyObject, ItemProtocol};
 use py::function::IntoFuncArgs;
+use py::pyobject::{IntoPyObject, ItemProtocol, TryFromObject};
+use rustpython_vm as py;
 
 use std::collections::HashMap;
 
@@ -29,13 +30,11 @@ pub fn find_and_render_path<T: PathfindAlgorithm>(
     let (maybe_path, mut draw_commands) = algo.find_path(grid, start, finish);
     maybe_path.map(|path| {
         draw_commands.push(DrawCommand::Clear);
-        draw_commands.push(
-            DrawCommand::AddShape(Shape::SegmentedLine {
-                points: path,
-                width: 5.,
-                color: colors::LIME,
-            }),
-        );
+        draw_commands.push(DrawCommand::AddShape(Shape::SegmentedLine {
+            points: path,
+            width: 5.,
+            color: colors::LIME,
+        }));
     });
     draw_commands
 }
@@ -133,20 +132,34 @@ impl PathfindAlgorithm for PythonPathfind {
             let py_grid = grid.clone().into_pyobject(vm);
 
             let find_path_item = scope.globals.get_item("find_path", vm).unwrap();
-            let find_path_func = find_path_item.downcast::<py::builtins::PyFunction>().unwrap();
+            let find_path_func = find_path_item
+                .downcast::<py::builtins::PyFunction>()
+                .unwrap();
 
-            let py_path = py::slots::Callable::call(&find_path_func, (py_grid,).into_args(vm), vm).unwrap();
+            let py_path = py::slots::Callable::call(
+                &find_path_func,
+                (py_grid, start, finish).into_args(vm),
+                vm,
+            )
+            .unwrap();
 
-            // TODO: fix
-            let path: usize = TryFromObject::try_from_object(vm, py_path).unwrap();
+            let path = PyVecWrapper::<PyTuple2Wrapper<usize, usize>>::try_from_object(vm, py_path)
+                .map(|vec_wrapper| {
+                    vec_wrapper
+                        .0
+                        .into_iter()
+                        .map(|tuple_wrapper| (tuple_wrapper.0, tuple_wrapper.1))
+                        .collect()
+                })
+                .unwrap();
 
-            (Some(vec![start, (path, path)]), vec![])
+            (Some(path), vec![])
         })
     }
 }
 
 impl Default for PythonPathfind {
     fn default() -> Self {
-        Self::new("def find_path(grid): return 3").unwrap()
+        Self::new("def find_path(grid, start, finish): return [start, (0, 5), finish]").unwrap()
     }
 }
