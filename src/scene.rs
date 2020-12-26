@@ -1,7 +1,6 @@
 pub use crate::runner::{colors, Color};
 
 use crate::grid::Grid;
-use crate::pathfind::{find_and_render_path, PythonPathfind};
 use crate::runner::{DrawContext, Event, MouseButton, Scene, SceneConfig};
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,6 +60,23 @@ impl PathtfindScene {
             draw_commands: vec![],
             animation_progress: 0.,
         }
+    }
+
+    pub fn grid(&self) -> &Grid<bool> {
+        &self.grid
+    }
+
+    pub fn start(&self) -> (usize, usize) {
+        self.start
+    }
+
+    pub fn finish(&self) -> (usize, usize) {
+        self.finish
+    }
+
+    pub fn set_draw_commands(&mut self, commands: Vec<DrawCommand>) {
+        self.draw_commands = commands;
+        self.animation_progress = -1.;
     }
 
     fn fill_cell(&self, x: usize, y: usize, color: Color, cx: &mut DrawContext) {
@@ -160,8 +176,10 @@ impl Scene for PathtfindScene {
     }
 
     fn update(&mut self, delta: f32) {
-        if self.animation_progress < self.draw_commands.len() as f32 {
-            self.animation_progress += 50. * delta;
+        if self.animation_progress < 0. {
+            self.animation_progress = 0.;
+        } else if self.animation_progress < self.draw_commands.len() as f32 {
+            self.animation_progress += 100. * delta;
         }
     }
 
@@ -206,18 +224,6 @@ impl Scene for PathtfindScene {
                 ..
             } => {
                 self.pointer_mode = PointerMode::Noop;
-            }
-            Event::MouseUp {
-                button: MouseButton::Right,
-                ..
-            } => {
-                self.draw_commands = find_and_render_path(
-                    &PythonPathfind::default(),
-                    &self.grid,
-                    self.start,
-                    self.finish,
-                );
-                self.animation_progress = 0.;
             }
             Event::MouseMoved {
                 x: mouse_x,

@@ -2,7 +2,9 @@ pub use quad_gl::{colors, Color};
 
 use macroquad::prelude as mq;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -136,14 +138,14 @@ pub trait Scene {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub struct Runner<T: Scene> {
-    scene: T,
+    scene: Rc<RefCell<T>>,
     scene_config: SceneConfig,
     event_tracker: EventTracker,
 }
 
 impl<T: Scene> Runner<T> {
-    pub fn new(scene: T) -> Self {
-        let scene_config = scene.config();
+    pub fn new(scene: Rc<RefCell<T>>) -> Self {
+        let scene_config = scene.borrow().config();
 
         Self {
             scene,
@@ -173,16 +175,22 @@ impl<T: Scene> Runner<T> {
             let delta = (now - prev_update_time) as f32;
             prev_update_time = now;
 
-            self.scene.update(delta);
-
-            for event in self.event_tracker.generate_events() {
-                self.scene.handle_event(event);
-            }
-
-            mq::clear_background(self.scene_config.bgcolor);
-            self.scene.draw(&mut DrawContext {});
+            self.update_and_draw_scene(delta);
 
             mq::next_frame().await
         }
+    }
+
+    fn update_and_draw_scene(&mut self, delta: f32) {
+        let mut scene = self.scene.borrow_mut();
+
+        scene.update(delta);
+
+        for event in self.event_tracker.generate_events() {
+            scene.handle_event(event);
+        }
+
+        mq::clear_background(self.scene_config.bgcolor);
+        scene.draw(&mut DrawContext {});
     }
 }
