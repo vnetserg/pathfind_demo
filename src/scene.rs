@@ -35,8 +35,10 @@ pub enum Shape {
 
 enum PointerMode {
     Noop,
-    Set,
-    Erase,
+    SetWall,
+    EraseWall,
+    SetStart,
+    SetFinish,
 }
 
 pub struct PathtfindScene {
@@ -131,6 +133,28 @@ impl PathtfindScene {
         }
     }
 
+    fn draw_highlight(&self, cx: &mut DrawContext) {
+        let highlight_color = Color::new(1., 1., 1., 0.25);
+        let maybe_cell = if self.active_cell == Some(self.start)
+            || matches!(self.pointer_mode, PointerMode::SetStart)
+        {
+            Some(self.start)
+        } else if self.active_cell == Some(self.finish)
+            || matches!(self.pointer_mode, PointerMode::SetFinish)
+        {
+            Some(self.finish)
+        } else {
+            self.active_cell
+        };
+        if let Some((x, y)) = maybe_cell {
+            if (x, y) == self.start || (x, y) == self.finish {
+                self.mark_cell(x, y, highlight_color, cx);
+            } else {
+                self.fill_cell(x, y, highlight_color, cx);
+            }
+        }
+    }
+
     fn draw_bars(&self, color: Color, cx: &mut DrawContext) {
         let config = self.config();
         for x in 0..self.grid.width() + 1 {
@@ -153,13 +177,15 @@ impl PathtfindScene {
     }
 
     fn apply_pointer_action(&mut self, x: usize, y: usize) {
-        if (x, y) == self.start || (x, y) == self.finish {
-            return;
-        }
+        let is_special = (x, y) == self.start || (x, y) == self.finish;
+        let is_wall = self.grid.get(x, y);
+        let old_commands = std::mem::replace(&mut self.draw_commands, vec![]);
         match self.pointer_mode {
-            PointerMode::Set => self.grid.set(x, y, true),
-            PointerMode::Erase => self.grid.set(x, y, false),
-            PointerMode::Noop => (),
+            PointerMode::SetWall if !is_special => self.grid.set(x, y, true),
+            PointerMode::SetStart if !is_special && !is_wall => self.start = (x, y),
+            PointerMode::SetFinish if !is_special && !is_wall => self.finish = (x, y),
+            PointerMode::EraseWall => self.grid.set(x, y, false),
+            _ => self.draw_commands = old_commands,
         }
     }
 }
@@ -189,14 +215,14 @@ impl Scene for PathtfindScene {
                 self.fill_cell(x, y, colors::GRAY, cx);
             }
         }
-        if let Some((x, y)) = self.active_cell {
-            let color = Color::new(1., 1., 1., 0.25);
-            self.fill_cell(x, y, color, cx);
-        }
+
         self.draw_bars(colors::WHITE, cx);
         self.draw_animation(cx);
+
         self.mark_cell(self.start.0, self.start.1, colors::DARKGREEN, cx);
         self.mark_cell(self.finish.0, self.finish.1, colors::DARKBLUE, cx);
+
+        self.draw_highlight(cx);
     }
 
     fn handle_event(&mut self, event: Event) {
@@ -207,17 +233,18 @@ impl Scene for PathtfindScene {
                 y: mouse_y,
             } => {
                 let (x, y) = self.get_cell_coordinates(mouse_x, mouse_y);
-                match self.grid.try_get(x, y) {
-                    Some(value) => {
-                        self.pointer_mode = if value {
-                            PointerMode::Erase
-                        } else {
-                            PointerMode::Set
-                        };
-                        self.apply_pointer_action(x as usize, y as usize);
+                self.pointer_mode = if (x as usize, y as usize) == self.start {
+                    PointerMode::SetStart
+                } else if (x as usize, y as usize) == self.finish {
+                    PointerMode::SetFinish
+                } else {
+                    match self.grid.try_get(x, y) {
+                        Some(true) => PointerMode::EraseWall,
+                        Some(false) => PointerMode::SetWall,
+                        None => PointerMode::Noop,
                     }
-                    None => self.pointer_mode = PointerMode::Noop,
-                }
+                };
+                self.apply_pointer_action(x as usize, y as usize);
             }
             Event::MouseUp {
                 button: MouseButton::Left,
